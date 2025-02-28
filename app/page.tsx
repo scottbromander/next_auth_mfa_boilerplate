@@ -1,11 +1,22 @@
-// import Image from "next/image";
+'use client';
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 
 export default function Home() {
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-100">
-      <h1 className="text-3xl font-bold text-blue-500">
-        Tailwind is Working! 🎉
-      </h1>
-    </div>
-  );
+  const router = useRouter();
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      // If logged in, go to dashboard
+      router.replace('/dashboard');
+    } else {
+      // Otherwise, go to login
+      router.replace('/auth/login');
+    }
+  }, [router]);
+
+  // We don't render anything because we're redirecting immediately
+  return null;
 }
