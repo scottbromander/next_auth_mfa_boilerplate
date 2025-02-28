@@ -1,8 +1,92 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+# Next.js AuthN + MFA + AuthZ Example
+
+This repository demonstrates a **Next.js 13** application with:
+
+- **Authentication (AuthN)** using JWT tokens
+- **Role-based Authorization (AuthZ)** (Basic or Advanced)
+- **Multi-Factor Authentication (MFA)** using Valkey (Redis-compatible)
+- **PostgreSQL** for user data storage
+
 ## Getting Started
 
-First, run the development server:
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/scottbromander/nextjs-authn-mfa-example.git
+cd nextjs-authn-mfa-example
+```
+
+### 2. Install Dependancies
+
+```bash
+npm install
+# or
+yarn
+# or
+pnpm install
+```
+
+### 3. Set Up Environment Variables
+
+Create a file called `.env.local` in the project root:
+
+```bash
+# PostgreSQL
+DATABASE_URL=postgresql://your_user:your_password@localhost:5432/next_auth_demo
+
+# JWT
+JWT_SECRET=your_random_jwt_secret
+
+# Valkey (Redis-compatible)
+VALKEY_URL=valkey://localhost:6379
+
+# (Optional) SMTP (for sending MFA OTPs via email)
+SMTP_HOST=smtp.example.com
+SMTP_PORT=587
+SMTP_USER=your-email@example.com
+SMTP_PASS=your-email-password
+```
+
+Replace the placeholders (`your_user`, `your_password`, etc.) with actual credentials.
+
+### 4. Configure PostgreSQL
+
+1. Install **PostgreSQL** (e.g., `brew install postgresql` on macOS or `sudo apt install postgresql postgresql-contrib` on Ubuntu).
+
+2. Create a database for this project:
+
+```sql
+CREATE DATABASE next_auth_demo;
+```
+
+3. Initialize the users table:
+
+```sql
+CREATE TABLE users (
+  id SERIAL PRIMARY KEY,
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password TEXT NOT NULL,
+  role VARCHAR(50) DEFAULT 'basic',
+  mfa_enabled BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+### 5. Set Up Valkey (Redis-Compatible)
+
+You can run Valkey in Docker:
+
+```bash
+docker run --name valkey -d -p 6379:6379 valkey/valkey
+```
+
+This starts Valkey on port 6379. Update VALKEY_URL in .env.local if you’re using a custom port or host.
+
+If you prefer local installation, ensure valkey-cli ping returns `PONG` before proceeding.
+
+### 6. Run the Development Server
 
 ```bash
 npm run dev
@@ -10,27 +94,37 @@ npm run dev
 yarn dev
 # or
 pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Then open http://localhost:3000 to view the app.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- app/ → Next.js 13 App Router for pages, with:
+  - auth/login → Login flow
+  - auth/register → Registration flow
+  - dashboard → Protected dashboard view
+- app/api/auth/ → Various route handlers for:
+  - login
+  - logout
+  - register
+  - verify-otp
+  - etc.
+- lib/valkey.ts → Valkey (Redis) connection
+- hooks/useUser.ts → Custom hook for fetching user data
+- services/userService.ts → Example for abstracting fetch logic
 
-## Learn More
+## Key Features
 
-To learn more about Next.js, take a look at the following resources:
+1. **Register** - Users can create accounts (/auth/register).
+2. **Login** - Authenticates with JWT; optionally triggers MFA if user has MFA enabled.
+3. **Dashboard** - Protected route that checks for a valid token. Displays user role & protected data from /api/protected.
+4. **Logout** - Invalidates session in Valkey + removes local token.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deployment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+We recommend deploying via Vercel for an optimized Next.js experience.
 
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+1. Set your environment variables (`DATABASE_URL`, `JWT_SECRET`, etc.) on Vercel.
+2. Connect your repo & deploy.
+3. Make sure your Valkey (Redis) & Postgres instances are accessible by your deployment (e.g., managed hosting).
